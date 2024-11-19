@@ -374,7 +374,7 @@ namespace WASender
         // This method is triggered from the button to initialize WhatsApp if not already initialized
         private void btnInitWA_Click(object sender, EventArgs e)
         {
-            // Only initialize if WhatsApp is not already initialized
+        
             if (!isWAInitialized)
             {
                 initBaseWA();
