@@ -23,7 +23,6 @@ namespace WASender
         SchedulesModel schedulesModel;
         List<string> friendlyList;
         int friendlyListSendAfter = 0;
-
         public SingleLauncher(WASenderSingleTransModel _wASenderSingleTransModel, WaSenderForm _waSenderForm, SchedulesModel _schedulesModel = null)
         {
             InitializeComponent();
@@ -174,270 +173,120 @@ namespace WASender
             }
 
         }
-        public bool prepareCampaign()
+
+        private bool prepareCampaign()
         {
+            if (Utils.waSenderBrowser != null)
+            {
+                Utils.waSenderBrowser.Close();
+                Utils.waSenderBrowser = null;
+            }
+
+            if (friendlyList != null && friendlyList.Count() > 0 && friendlyListSendAfter > 0 && materialCheckbox3.Checked)
+            {
+                this.waSenderForm.receiveFriendlyNumbersData(friendlyList, friendlyListSendAfter);
+
+                var chunks = wASenderSingleTransModel.contactList.Chunk<ContactModel>(friendlyListSendAfter).ToList();
+
+                wASenderSingleTransModel.contactList = new List<ContactModel>();
+
+                foreach (var chunk in chunks)
+                {
+                    List<ContactModel> lisr = chunk.ToList();
+                    wASenderSingleTransModel.contactList.AddRange(lisr);
+                    ContactModel contact;
+                    foreach (string fNumber in friendlyList)
+                    {
+                        contact = new ContactModel();
+                        contact.number = fNumber;
+                        contact.isFriendly = true;
+                        contact.sendStatusModel = new SendStatusModel { isDone = false };
+
+                        wASenderSingleTransModel.contactList.Add(contact);
+
+                    }
+
+                }
+            }
+
+            List<ConnectedAccountModel> ConnectedAccountModelList = new List<ConnectedAccountModel>();
+            if (generalSettingsModel.browserType == 2)
+            {
+                ConnectedAccountModel connectedAccountModel;
+                foreach (DataGridViewRow item in dataGridView1.Rows)
+                {
+                    if (Convert.ToBoolean(item.Cells[0].Value) == true)
+                    {
+                        DataRow dr = (DataRow)item.Tag;
+                        string sesionID = dr["sesionID"].ToString();
+                        string ID = dr["ID"].ToString();
+                        string sessionName = dr["sessionName"].ToString();
+
+                        connectedAccountModel = new ConnectedAccountModel();
+                        connectedAccountModel.ID = ID;
+                        connectedAccountModel.sessionName = sessionName;
+                        connectedAccountModel.sesionID = sesionID;
+                        ConnectedAccountModelList.Add(connectedAccountModel);
+                    }
+                }
+                if (ConnectedAccountModelList.Count() == 0)
+                {
+                    MaterialDialog materialDialog = new MaterialDialog(this, Strings.Select, Strings.Pleaseselectatleastoneaccount, Strings.OK, false, Strings.Cancel);
+                    DialogResult result = materialDialog.ShowDialog(this);
+                    {
+                        return true;
+                    }
+
+                }
+            }
+
+
             try
             {
-                // Check if WhatsApp has already been initialized
-                if (isWAInitialized)
+                if (wASenderSingleTransModel.messages.Where(x => x != null).Count() >= 2)
                 {
-                    Console.WriteLine("WhatsApp already initialized, starting message sending directly.");
-
-                    if (wASenderSingleTransModel == null)
+                    if (materialComboBox1.SelectedValue == "1")
                     {
-                        wASenderSingleTransModel = new WASenderSingleTransModel();
+                        wASenderSingleTransModel.IsRotateMessages = false;
                     }
-
-                    RunSingle run = new RunSingle(wASenderSingleTransModel, waSenderForm);
-
-                    if (run != null)
+                    else if (materialComboBox1.SelectedValue == "2")
                     {
-                        // Start sending messages
-                        run.doStartWork();
-                        return false;
-                    }
-                    else
-                    {
-                        Console.WriteLine("Failed to create RunSingle instance.");
-                        return true;
+                        wASenderSingleTransModel.IsRotateMessages = true;
                     }
                 }
 
-                // Close any previous browser session if exists
-                if (Utils.waSenderBrowser != null)
-                {
-                    if (Utils.waSenderBrowser.InvokeRequired)
-                    {
-                        Utils.waSenderBrowser.Invoke((MethodInvoker)delegate
-                        {
-                            Utils.waSenderBrowser.Close();
-                            Utils.waSenderBrowser = null;
-                        });
-                    }
-                    else
-                    {
-                        Utils.waSenderBrowser.Close();
-                        Utils.waSenderBrowser = null;
-                    }
-                }
-
-                // Accessing DataGridView safely for connected accounts initialization
-                var connectedAccountModelList = new List<ConnectedAccountModel>();
-                if (generalSettingsModel.browserType == 2)
-                {
-                    Console.WriteLine("Initializing connected accounts...");
-
-                    if (dataGridView1.InvokeRequired)
-                    {
-                        dataGridView1.Invoke((MethodInvoker)delegate
-                        {
-                            foreach (DataGridViewRow item in dataGridView1.Rows)
-                            {
-                                if (Convert.ToBoolean(item.Cells[0].Value))
-                                {
-                                    var dr = (DataRow)item.Tag;
-                                    var connectedAccountModel = new ConnectedAccountModel
-                                    {
-                                        ID = dr["ID"].ToString(),
-                                        sessionName = dr["sessionName"].ToString(),
-                                        sesionID = dr["sesionID"].ToString()
-                                    };
-                                    connectedAccountModelList.Add(connectedAccountModel);
-                                }
-                            }
-                        });
-                    }
-                    else
-                    {
-                        foreach (DataGridViewRow item in dataGridView1.Rows)
-                        {
-                            if (Convert.ToBoolean(item.Cells[0].Value))
-                            {
-                                var dr = (DataRow)item.Tag;
-                                var connectedAccountModel = new ConnectedAccountModel
-                                {
-                                    ID = dr["ID"].ToString(),
-                                    sessionName = dr["sessionName"].ToString(),
-                                    sesionID = dr["sesionID"].ToString()
-                                };
-                                connectedAccountModelList.Add(connectedAccountModel);
-                            }
-                        }
-                    }
-
-                    if (!connectedAccountModelList.Any())
-                    {
-                        if (this.InvokeRequired)
-                        {
-                            this.Invoke((MethodInvoker)delegate
-                            {
-                                var materialDialog = new MaterialDialog(this, "Select", "Please select at least one account", "OK", false, "Cancel");
-                                materialDialog.ShowDialog(this);
-                            });
-                        }
-                        else
-                        {
-                            var materialDialog = new MaterialDialog(this, "Select", "Please select at least one account", "OK", false, "Cancel");
-                            materialDialog.ShowDialog(this);
-                        }
-                        return true;
-                    }
-                }
-
-                wASenderSingleTransModel.selectedAccounts = connectedAccountModelList;
-
-                // Set the initialization flag to true
-                isWAInitialized = true;
-
-                Console.WriteLine("Campaign preparation completed successfully.");
-                return false;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error preparing campaign: {ex.Message}");
-                return true;
+
             }
-        }
 
-
-        private bool isWAInitialized = false;
-        // Helper method to get selected accounts
-        private List<ConnectedAccountModel> GetSelectedAccounts()
-        {
-            var connectedAccountModelList = new List<ConnectedAccountModel>();
-            if (generalSettingsModel.browserType == 2)
+            wASenderSingleTransModel.selectedAccounts = ConnectedAccountModelList;
+            try
             {
-                foreach (DataGridViewRow item in dataGridView1.Rows)
-                {
-                    if (Convert.ToBoolean(item.Cells[0].Value))
-                    {
-                        DataRow dr = (DataRow)item.Tag;
-                        connectedAccountModelList.Add(new ConnectedAccountModel
-                        {
-                            ID = dr["ID"].ToString(),
-                            sessionName = dr["sessionName"].ToString(),
-                            sesionID = dr["sesionID"].ToString()
-                        });
-                    }
-                }
+                wASenderSingleTransModel.swipeAccountAfterMessages = Convert.ToInt32(materialTextBox22.Text);
             }
-            return connectedAccountModelList;
+            catch (Exception ex)
+            {
+                wASenderSingleTransModel.swipeAccountAfterMessages = 2;
+            }
+
+            if (materialCheckbox1.Checked)
+            {
+                wASenderSingleTransModel.isSafeMode = true;
+            }
+            else
+            {
+                wASenderSingleTransModel.isSafeMode = false;
+            }
+
+            wASenderSingleTransModel.CampaignName = materialTextBox21.Text;
+
+
+
+
+            return false;
         }
-
-
-        //private bool prepareCampaign()
-        //{
-        //    if (Utils.waSenderBrowser != null)
-        //    {
-        //        Utils.waSenderBrowser.Close();
-        //        Utils.waSenderBrowser = null;
-        //    }
-
-        //    if (friendlyList != null && friendlyList.Count() > 0 && friendlyListSendAfter > 0 && materialCheckbox3.Checked)
-        //    {
-        //        this.waSenderForm.receiveFriendlyNumbersData(friendlyList, friendlyListSendAfter);
-
-        //        var chunks = wASenderSingleTransModel.contactList.Chunk<ContactModel>(friendlyListSendAfter).ToList();
-
-        //        wASenderSingleTransModel.contactList = new List<ContactModel>();
-
-        //        foreach (var chunk in chunks)
-        //        {
-        //            List<ContactModel> lisr = chunk.ToList();
-        //            wASenderSingleTransModel.contactList.AddRange(lisr);
-        //            ContactModel contact;
-        //            foreach (string fNumber in friendlyList)
-        //            {
-        //                contact = new ContactModel();
-        //                contact.number = fNumber;
-        //                contact.isFriendly = true;
-        //                contact.sendStatusModel = new SendStatusModel { isDone = false };
-
-        //                wASenderSingleTransModel.contactList.Add(contact);
-
-        //            }
-
-        //        }
-        //    }
-
-        //    List<ConnectedAccountModel> ConnectedAccountModelList = new List<ConnectedAccountModel>();
-        //    if (generalSettingsModel.browserType == 2)
-        //    {
-        //        ConnectedAccountModel connectedAccountModel;
-        //        foreach (DataGridViewRow item in dataGridView1.Rows)
-        //        {
-        //            if (Convert.ToBoolean(item.Cells[0].Value) == true)
-        //            {
-        //                DataRow dr = (DataRow)item.Tag;
-        //                string sesionID = dr["sesionID"].ToString();
-        //                string ID = dr["ID"].ToString();
-        //                string sessionName = dr["sessionName"].ToString();
-
-        //                connectedAccountModel = new ConnectedAccountModel();
-        //                connectedAccountModel.ID = ID;
-        //                connectedAccountModel.sessionName = sessionName;
-        //                connectedAccountModel.sesionID = sesionID;
-        //                ConnectedAccountModelList.Add(connectedAccountModel);
-        //            }
-        //        }
-        //        if (ConnectedAccountModelList.Count() == 0)
-        //        {
-        //            MaterialDialog materialDialog = new MaterialDialog(this, Strings.Select, Strings.Pleaseselectatleastoneaccount, Strings.OK, false, Strings.Cancel);
-        //            DialogResult result = materialDialog.ShowDialog(this);
-        //            {
-        //                return true;
-        //            }
-
-        //        }
-        //    }
-
-
-        //    try
-        //    {
-        //        if (wASenderSingleTransModel.messages.Where(x => x != null).Count() >= 2)
-        //        {
-        //            if (materialComboBox1.SelectedValue == "1")
-        //            {
-        //                wASenderSingleTransModel.IsRotateMessages = false;
-        //            }
-        //            else if (materialComboBox1.SelectedValue == "2")
-        //            {
-        //                wASenderSingleTransModel.IsRotateMessages = true;
-        //            }
-        //        }
-
-        //    }
-        //    catch (Exception ex)
-        //    {
-
-        //    }
-
-        //    wASenderSingleTransModel.selectedAccounts = ConnectedAccountModelList;
-        //    try
-        //    {
-        //        wASenderSingleTransModel.swipeAccountAfterMessages = Convert.ToInt32(materialTextBox22.Text);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        wASenderSingleTransModel.swipeAccountAfterMessages = 2;
-        //    }
-
-        //    if (materialCheckbox1.Checked)
-        //    {
-        //        wASenderSingleTransModel.isSafeMode = true;
-        //    }
-        //    else
-        //    {
-        //        wASenderSingleTransModel.isSafeMode = false;
-        //    }
-
-        //    wASenderSingleTransModel.CampaignName = materialTextBox21.Text;
-
-
-
-
-        //    return false;
-        //}
 
         private void dataGridView1_CellPainting(object sender, DataGridViewCellPaintingEventArgs e)
         {

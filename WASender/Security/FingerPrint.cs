@@ -60,47 +60,37 @@ namespace Security
         }
         #region Original Device ID Getting Code
         //Return a hardware identifier
-        #region - Abbas changes
-        private static string identifier(string wmiClass, string wmiProperty, string wmiMustBeTrue = null)
+        private static string identifier
+        (string wmiClass, string wmiProperty, string wmiMustBeTrue)
         {
             string result = "";
-            ManagementClass mc = new ManagementClass(wmiClass);
-            ManagementObjectCollection moc = mc.GetInstances();
-
-            foreach (ManagementObject mo in moc)
+            System.Management.ManagementClass mc =
+        new System.Management.ManagementClass(wmiClass);
+            System.Management.ManagementObjectCollection moc = mc.GetInstances();
+            foreach (System.Management.ManagementObject mo in moc)
             {
-                try
+                if (mo[wmiMustBeTrue].ToString() == "True")
                 {
-                    // Check if the must-be-true condition is specified and fulfilled
-                    if (wmiMustBeTrue == null || (mo[wmiMustBeTrue]?.ToString() == "True"))
+                    //Only get the first one
+                    if (result == "")
                     {
-                        result = mo[wmiProperty]?.ToString();
-
-                        // Return default value if property is unavailable
-                        if (string.IsNullOrEmpty(result))
+                        try
                         {
-                            result = "21:4E:F7:82:B5:54";  // Default value
+                            result = mo[wmiProperty].ToString(); 
+                            break;
                         }
-
-                        break; // Only get the first one
+                        catch(Exception ex)
+                        {
+                            result = "21:4E:F7:82:B5:54";
+                            break;
+                        }
                     }
-                }
-                catch
-                {
-                    result = "21:4E:F7:82:B5:54";  // Default in case of an error
-                    break;
                 }
             }
             return result;
         }
-
-        // Overloaded version to get a hardware identifier without a "must-be-true" condition
+        //Return a hardware identifier
         private static string identifier(string wmiClass, string wmiProperty)
-        {
-            return identifier(wmiClass, wmiProperty, null);
-        }
-        #endregion - Abbas changes
-        private static string identifier_1(string wmiClass, string wmiProperty)
         {
             string result = "";
             System.Management.ManagementClass mc =

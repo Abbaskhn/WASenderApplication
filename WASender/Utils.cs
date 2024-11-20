@@ -42,8 +42,6 @@ namespace WASender
             }
             set { _waSenderBrowser = value; }
         }
-        private static readonly object _lock = new object();
-        private static bool _isInitialized = false;
 
         public static OpenQA.Selenium.IWebDriver Driver
         {

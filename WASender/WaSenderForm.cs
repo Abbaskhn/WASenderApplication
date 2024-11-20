@@ -1,12 +1,15 @@
 ﻿
 using FluentValidation.Results;
+using MaterialSkin;
 using MaterialSkin.Controls;
-using Microsoft.Web.WebView2.WinForms;
 using Models;
 using Newtonsoft.Json;
 using OfficeOpenXml;
+using OpenQA.Selenium;
+using OpenQA.Selenium.Chrome;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Drawing;
@@ -14,15 +17,13 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using WaAutoReplyBot.Models;
-using WASender;
 using WASender.Model;
 using WASender.Models;
 using WASender.Validators;
-using static Vanara.Interop.KnownShellItemPropertyKeys;
 
 
 namespace WASender
@@ -138,7 +139,7 @@ namespace WASender
             setBrowserDefaultHtml(webBrowser14);
             setBrowserDefaultHtml(webBrowser15);
             setBrowserDefaultHtml(webBrowser16);
-
+            
 
 
             this._browser1.DocumentCompleted += new WebBrowserDocumentCompletedEventHandler(browser1_DocumentCompleted);
@@ -172,8 +173,8 @@ namespace WASender
             this._btnBrowser3.DocumentCompleted += new WebBrowserDocumentCompletedEventHandler(_btnBrowser3_DocumentCompleted);
             this._btnBrowser4.DocumentCompleted += new WebBrowserDocumentCompletedEventHandler(_btnBrowser4_DocumentCompleted);
             this._btnBrowser5.DocumentCompleted += new WebBrowserDocumentCompletedEventHandler(_btnBrowser5_DocumentCompleted);
-
-
+            
+            
 
         }
 
@@ -705,7 +706,7 @@ namespace WASender
 
             try
             {
-                await System.Threading.Tasks.Task.Delay(1000);
+                await Task.Delay(1000);
                 ServicePointManager.Expect100Continue = true;
                 ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
@@ -807,7 +808,7 @@ namespace WASender
             {
                 wASenderSingleTransModel = JsonConvert.DeserializeObject<WASenderSingleTransModel>(schedulesModel.JsonString);
 
-                System.Threading.Tasks.Task.Delay(1000).ContinueWith(t => bar());
+                Task.Delay(1000).ContinueWith(t => bar());
                 RunSingle run = new RunSingle(wASenderSingleTransModel, this, schedulesModel, forceScheduleRun);
                 run.Show();
 
@@ -815,7 +816,7 @@ namespace WASender
             if (schedulesModel.Type == "GROUP")
             {
                 wASenderGroupTransModel = JsonConvert.DeserializeObject<WASenderGroupTransModel>(schedulesModel.JsonString);
-                System.Threading.Tasks.Task.Delay(1000).ContinueWith(t => bar());
+                Task.Delay(1000).ContinueWith(t => bar());
                 RunGroup run = new RunGroup(wASenderGroupTransModel, this, schedulesModel, forceScheduleRun);
                 run.Show();
             }
@@ -844,7 +845,7 @@ namespace WASender
         private async void browser11_DocumentCompleted(Object sender, WebBrowserDocumentCompletedEventArgs e)
         {
             setPrimaryColor(materialSkinManager.ColorScheme.PrimaryColor.R, materialSkinManager.ColorScheme.PrimaryColor.G, materialSkinManager.ColorScheme.PrimaryColor.B);
-            await System.Threading.Tasks.Task.Delay(1000);
+            await Task.Delay(1000);
             setLanguages();
             setEnableDesableTools();
             webBrowser11.Visible = true;
@@ -1288,8 +1289,8 @@ namespace WASender
             changeGridHeaders(dataGridView9);
             changeGridHeaders(dataGridView10);
 
-            groupBox21.Text = groupBox22.Text = groupBox23.Text = groupBox24.Text = groupBox25.Text = Strings.Buttons;
-            materialButton3.Text = materialButton9.Text = materialButton10.Text = materialButton11.Text = materialButton12.Text = Strings.AddButton;
+            groupBox21.Text = groupBox22.Text =groupBox23.Text= groupBox24.Text =groupBox25.Text= Strings.Buttons;
+            materialButton3.Text = materialButton9.Text = materialButton10.Text = materialButton11.Text = materialButton12 .Text= Strings.AddButton;
 
             if (!Strings.EnableButtons)
             {
@@ -1379,7 +1380,7 @@ namespace WASender
             }
             tabMain.SelectedIndex = 0;
         }
-        private void btnUploadExcel_Click1(object sender, EventArgs e)
+        private void btnUploadExcel_Click(object sender, EventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.Title = Strings.SelectExcel;
@@ -1495,695 +1496,6 @@ namespace WASender
                         Utils.showAlert(ex.Message, Alerts.Alert.enmType.Error);
                     }
                 }
-            }
-        }
-        private MesageModel AttachedFileMessageModel;
-        private List<MesageModel> AttachedFileMessageModels = new List<MesageModel>();
-        private async void btnUploadExcel_Clicktek(object sender, EventArgs e)
-        {
-            using (var folderDialog = new FolderBrowserDialog())
-            {
-
-                if (folderDialog.ShowDialog() == DialogResult.OK)
-                {
-                    string selectedFolder = folderDialog.SelectedPath;
-
-
-                    string[] pdfFiles = Directory.GetFiles(selectedFolder, "*.pdf");
-
-
-                    WebView2 wv = new WebView2();
-                    await wv.EnsureCoreWebView2Async();
-
-                    WASenderSingleTransModel transModel = new WASenderSingleTransModel();
-                    SchedulesModel schedulesModel = new SchedulesModel();
-                    RunSingle runSingleInstance = new RunSingle(transModel, this, schedulesModel, false);
-
-                    AttachedFileMessageModel = new MesageModel
-                    {
-                        longMessage = $" please find the attached document.",
-                        files = new List<FilesModel>(),
-                    };
-
-
-                    foreach (var filePath in pdfFiles)
-                    {
-                        try
-                        {
-                            string fileName = Path.GetFileNameWithoutExtension(filePath);
-
-
-                            string[] fileParts = fileName.Split(new char[] { ';', ':' }, StringSplitOptions.RemoveEmptyEntries);
-
-
-                            if (fileParts.Length < 2)
-                            {
-                                Console.WriteLine($"File name format incorrect: {fileName}");
-                                continue;
-                            }
-
-
-                            string companyName = fileParts[0].Trim();
-                            string phoneNumber = fileParts[1].Trim();
-
-
-                            if (phoneNumber.StartsWith("00"))
-                            {
-                                phoneNumber = "+" + phoneNumber.Substring(2);
-                            }
-
-
-                            byte[] fileBytes = File.ReadAllBytes(filePath);
-                            string fileBase64 = Convert.ToBase64String(fileBytes);
-                            string contentType = "application/pdf";
-                            string fullBase64 = $"data:{contentType};base64,{fileBase64}";
-
-
-                            // Prepare the message model with contact-specific file
-                            MesageModel messageModel = new MesageModel
-                            {
-                                longMessage = $"Dear {companyName}, please find the attached document.",
-                                files = new List<FilesModel>
-                                {
-                                new FilesModel
-                                    {
-                                    filePath = filePath,
-                                    fileName = Path.GetFileName(filePath),
-                                    attachWithMainMessage = true
-                                        }
-                                }
-                            };
-
-                            ContactModel contactModel = new ContactModel
-                            {
-                                number = phoneNumber
-                            };
-
-
-                            AttachedFileMessageModel.files.Add(new FilesModel
-                            {
-                                filePath = filePath,
-                                fileName = Path.GetFileName(filePath),
-                                attachWithMainMessage = true
-                            });
-
-                            AttachedFileMessageModels.Add(messageModel);
-                            //AttachedFileMessageModel = messageModel; 
-                            int rowIndex = gridTargets.Rows.Add();
-                            gridTargets.Rows[rowIndex].Cells[0].Value = phoneNumber;
-                            gridTargets.Rows[rowIndex].Cells[1].Value = companyName;
-
-
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"Error processing file {filePath}: {ex.Message}");
-                        }
-                    }
-
-
-                    wv.Dispose();
-                }
-            }
-        }
-
-        private FileSystemWatcher fileWatcher;
-        private readonly HashSet<string> recentlyProcessedFiles = new HashSet<string>();
-        private readonly object fileProcessingLock = new object();
-        private async void btnUploadExcel_Click(object sender, EventArgs e)
-        {
-            using (var folderDialog = new FolderBrowserDialog())
-            {
-                if (folderDialog.ShowDialog() == DialogResult.OK)
-                {
-                    string selectedFolder = folderDialog.SelectedPath;
-
-                    fileWatcher = new FileSystemWatcher(selectedFolder)
-                    {
-                        Filter = "*.pdf",
-                        NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.CreationTime
-                    };
-
-                    fileWatcher.Created += async (s, args) => await OnNewFileDetected(args.FullPath);
-                    fileWatcher.EnableRaisingEvents = true;
-
-                    Console.WriteLine($"Monitoring folder: {selectedFolder}");
-
-                    await ProcessFilesInFolder(selectedFolder);
-                }
-            }
-        }
-
-        private async System.Threading.Tasks.Task ProcessFilesInFolder(string folderPath)
-        {
-            string[] pdfFiles = Directory.GetFiles(folderPath, "*.pdf");
-
-            WebView2 wv = new WebView2();
-            await wv.EnsureCoreWebView2Async();
-
-          //  await ProcessSingleFile(folderPath, wv, false);
-            WASenderSingleTransModel transModel = new WASenderSingleTransModel();
-            SchedulesModel schedulesModel = new SchedulesModel();
-            RunSingle runSingleInstance = new RunSingle(transModel, this, schedulesModel, false);
-
-            AttachedFileMessageModel = new MesageModel
-            {
-                longMessage = $"Please find the attached document.",
-                files = new List<FilesModel>(),
-            };
-
-            foreach (var filePath in pdfFiles)
-            {
-                try
-                {
-                    string fileName = Path.GetFileNameWithoutExtension(filePath);
-
-                    string[] fileParts = fileName.Split(new char[] { ';', ':' }, StringSplitOptions.RemoveEmptyEntries);
-
-                    if (fileParts.Length < 2)
-                    {
-                        Console.WriteLine($"File name format incorrect: {fileName}");
-                        continue;
-                    }
-
-                    string companyName = fileParts[0].Trim();
-                    string phoneNumber = fileParts[1].Trim();
-
-                    if (phoneNumber.StartsWith("00"))
-                    {
-                        phoneNumber = "+" + phoneNumber.Substring(2);
-                    }
-
-                    byte[] fileBytes = File.ReadAllBytes(filePath);
-                    string fileBase64 = Convert.ToBase64String(fileBytes);
-                    string contentType = "application/pdf";
-                    string fullBase64 = $"data:{contentType};base64,{fileBase64}";
-
-
-                    MesageModel messageModel = new MesageModel
-                    {
-                        longMessage = $"Dear {companyName}, please find the attached document.",
-                        files = new List<FilesModel>
-                {
-                    new FilesModel
-                    {
-                        filePath = filePath,
-                        fileName = Path.GetFileName(filePath),
-                        attachWithMainMessage = true
-                    }
-                }
-                    };
-
-                    ContactModel contactModel = new ContactModel
-                    {
-                        number = phoneNumber
-                    };
-
-                    AttachedFileMessageModel.files.Add(new FilesModel
-                    {
-                        filePath = filePath,
-                        fileName = Path.GetFileName(filePath),
-                        attachWithMainMessage = true
-                    });
-
-                    AttachedFileMessageModels.Add(messageModel);
-
-
-                    int rowIndex = gridTargets.Rows.Add();
-                    gridTargets.Rows[rowIndex].Cells[0].Value = phoneNumber;
-                    gridTargets.Rows[rowIndex].Cells[1].Value = companyName;
-
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error processing file {filePath}: {ex.Message}");
-                }
-            }
-            wv.Dispose();
-        }
-
-
-
-        public async System.Threading.Tasks.Task OnNewFileDetected(string filePath)
-        {
-            try
-            {
-                Console.WriteLine($"New file detected: {filePath}");
-
-                lock (fileProcessingLock)
-                {
-
-                    if (recentlyProcessedFiles.Contains(filePath))
-                    {
-                        Console.WriteLine($"File {filePath} is already processed. Skipping...");
-                        return;
-                    }
-
-                    recentlyProcessedFiles.Add(filePath);
-                }
-
-
-
-                WebView2 wv = new WebView2();
-              
-
-                Invoke(new Action(() =>
-                {
-                    AddFileToGrid(filePath);
-                }));
-
-                await ProcessSingleFile(filePath, wv, sendAutomatically: true);
-                await System.Threading.Tasks.Task.Delay(5000);
-                lock (fileProcessingLock)
-                {
-                    recentlyProcessedFiles.Remove(filePath);
-                }
-               
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error processing new file {filePath}: {ex.Message}");
-            }
-        }
-
-        delegate void SendAuto(string file);
-        private Microsoft.Web.WebView2.WinForms.WebView2 webView21;
-        public void ProcessSingleFileInThread(string filePath, WebView2 wv, bool sendAutomatically)
-        {
-            // Create a new thread for processing the file
-            Thread processThread = new Thread(() => ProcessSingleFile(filePath, wv, sendAutomatically));
-            processThread.IsBackground = true;
-            processThread.Start();
-        }
-
-    public async System.Threading.Tasks.Task ProcessSingleFile(string filePath, WebView2 wv, bool sendAutomatically)
-{
-    try
-    {
-        // Initialize required models
-        WASenderSingleTransModel transModel = this.wASenderSingleTransModel ?? new WASenderSingleTransModel();
-        SchedulesModel schedulesModel = new SchedulesModel();
-                
-        // Initialize SingleLauncher with required parameters
-        SingleLauncher singleLauncher = new SingleLauncher(transModel, this, schedulesModel);
-
-                // Prepare the campaign
-                // Use static data for automatic file sending
-                ConnectedAccountModel selectedAccounts = new ConnectedAccountModel
-                {
-                    ID = "6",
-                    sessionName = "Abbas",
-                    sesionID = "af6f2a28-c2de-42ad-adde-3037c9f1ce97"
-                };
-               new WaSenderBrowser(wASenderSingleTransModel.selectedAccounts);
-
-       
-
-        // Extract the file name without extension
-        string fileName = Path.GetFileNameWithoutExtension(filePath);
-        string[] fileParts = fileName.Split(new char[] { ';', ':' }, StringSplitOptions.RemoveEmptyEntries);
-
-        // Validate file name format (must contain at least company name and phone number)
-        if (fileParts.Length < 2)
-        {
-            Console.WriteLine($"File name format incorrect: {fileName}");
-            return;
-        }
-
-        // Extract company name and phone number
-        string companyName = fileParts[0].Trim();
-        string phoneNumber = NormalizePhoneNumber(fileParts[1].Trim());
-
-        // Read the file as bytes and convert to Base64
-        byte[] fileBytes = File.ReadAllBytes(filePath);
-        string fileBase64 = Convert.ToBase64String(fileBytes);
-        string contentType = "application/pdf";
-        string fullBase64 = $"data:{contentType};base64,{fileBase64}";
-
-        // Create a message model with attachment
-        MesageModel messageModel = new MesageModel
-        {
-            longMessage = $"Dear {companyName}, please find the attached document.",
-            files = new List<FilesModel>
-            {
-                new FilesModel
-                {
-                    filePath = filePath,
-                    fileName = Path.GetFileName(filePath),
-                    attachWithMainMessage = true
-                }
-            }
-        };
-
-        // Safely add the file to UI grid using Invoke
-        if (wv.InvokeRequired)
-        {
-            wv.Invoke((MethodInvoker)delegate { AddFileToGridSafe(filePath); });
-        }
-        else
-        {
-            AddFileToGridSafe(filePath);
-        }
-
-        // Automatically send the message if specified
-        if (sendAutomatically)
-        {
-            // Create contact model
-            ContactModel contactModel = new ContactModel { number = phoneNumber };
-
-            // Assign the contact and message model to the transModel
-            transModel.contactList = new List<ContactModel> { contactModel };
-            transModel.messages = new List<MesageModel> { messageModel };
-
-            // Send the message asynchronously
-            if (wv.InvokeRequired)
-            {
-                wv.Invoke((MethodInvoker)(async () =>
-                {
-                    try
-                    {
-                        RunSingle runSingleInstance = new RunSingle(transModel, this, schedulesModel, false);
-                        await runSingleInstance.doStartWork();
-                        Console.WriteLine("Message sent successfully.");
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error during message sending: {ex.Message}");
-                    }
-                }));
-            }
-            else
-            {
-                try
-                {
-                    RunSingle runSingleInstance = new RunSingle(transModel, this, schedulesModel, false);
-                    await runSingleInstance.doStartWork();
-                    Console.WriteLine("Message sent successfully.");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error during message sending: {ex.Message}");
-                }
-            }
-        }
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Error processing file {filePath}: {ex.Message}");
-    }
-}
-
-        //private async System.Threading.Tasks.Task ProcessSingleFile(string filePath, WebView2 wv, bool sendAutomatically)
-        //{
-        //    try
-        //    {
-        //        WASenderSingleTransModel transModel = new WASenderSingleTransModel();
-        //        SchedulesModel schedulesModel = new SchedulesModel();
-        //        RunSingle runSingleInstance = null;
-
-        //        // Ensure RunSingle and WebView2 are instantiated on the UI thread
-        //        if (this.InvokeRequired)
-        //        {
-        //            this.Invoke((MethodInvoker)delegate
-        //            {
-        //                runSingleInstance = new RunSingle(transModel, this, schedulesModel, false);
-        //                wv = new WebView2(); // Initialize WebView2 on the UI thread
-        //            });
-        //        }
-        //        else
-        //        {
-        //            runSingleInstance = new RunSingle(transModel, this, schedulesModel, false);
-        //            wv = new WebView2(); // Initialize WebView2 directly
-        //        }
-
-        //        // Extract file name without extension
-        //        string fileName = Path.GetFileNameWithoutExtension(filePath);
-        //        string[] fileParts = fileName.Split(new char[] { ';', ':' }, StringSplitOptions.RemoveEmptyEntries);
-
-        //        // Validate file name format
-        //        if (fileParts.Length < 2)
-        //        {
-        //            Console.WriteLine($"File name format incorrect: {fileName}");
-        //            return;
-        //        }
-
-        //        // Extract company name and phone number
-        //        string companyName = fileParts[0].Trim();
-        //        string phoneNumber = NormalizePhoneNumber(fileParts[1].Trim());
-
-        //        // Read file as bytes and convert to Base64
-        //        byte[] fileBytes = File.ReadAllBytes(filePath);
-        //        string fileBase64 = Convert.ToBase64String(fileBytes);
-        //        string contentType = "application/pdf";
-        //        string fullBase64 = $"data:{contentType};base64,{fileBase64}";
-
-        //        // Create message model
-        //        MesageModel messageModel = new MesageModel
-        //        {
-        //            longMessage = $"Dear {companyName}, please find the attached document.",
-        //            files = new List<FilesModel>
-        //    {
-        //        new FilesModel
-        //        {
-        //            filePath = filePath,
-        //            fileName = Path.GetFileName(filePath),
-        //            attachWithMainMessage = true
-        //        }
-        //    }
-        //        };
-
-        //        // Add the file to grid (thread-safe)
-        //        AddFileToGridSafe(filePath);
-
-        //        if (sendAutomatically)
-        //        {
-        //            try
-        //            {
-        //                // Run the work process on a separate task to avoid blocking the UI thread
-        //                bool workStarted = await System.Threading.Tasks.Task.Run(() =>
-        //                {
-        //                    return runSingleInstance.doStartWork().Result;
-        //                });
-
-        //                // Safely update UI including WebView2 using Invoke
-        //                if (this.InvokeRequired)
-        //                {
-        //                    this.Invoke(new MethodInvoker(async () =>
-        //                    {
-        //                        // Update status
-        //                        Console.WriteLine(workStarted
-        //                            ? $"Message sent successfully to {phoneNumber}."
-        //                            : $"Failed to send message to {phoneNumber}.");
-
-        //                        // Example of using WebView2 safely
-        //                        if (wv != null)
-        //                        {
-        //                            try
-        //                            {
-        //                                await wv.EnsureCoreWebView2Async();
-        //                                wv.CoreWebView2.Navigate("https://www.example.com"); // Navigate to a URL
-        //                            }
-        //                            catch (Exception webEx)
-        //                            {
-        //                                Console.WriteLine($"Error initializing WebView2: {webEx.Message}");
-        //                            }
-        //                        }
-        //                    }));
-        //                }
-        //                else
-        //                {
-        //                    // Direct UI thread update
-        //                    Console.WriteLine(workStarted
-        //                        ? $"Message sent successfully to {phoneNumber}."
-        //                        : $"Failed to send message to {phoneNumber}.");
-
-        //                    if (wv != null)
-        //                    {
-        //                        try
-        //                        {
-        //                            await wv.EnsureCoreWebView2Async();
-
-        //                        }
-        //                        catch (Exception webEx)
-        //                        {
-        //                            Console.WriteLine($"Error initializing WebView2: {webEx.Message}");
-        //                        }
-        //                    }
-        //                }
-        //            }
-        //            catch (Exception ex)
-        //            {
-        //                // Handle exceptions and safely update UI
-        //                if (this.InvokeRequired)
-        //                {
-        //                    this.Invoke(new MethodInvoker(() =>
-        //                    {
-        //                        Console.WriteLine($"Error during message sending: {ex.Message}");
-        //                    }));
-        //                }
-        //                else
-        //                {
-        //                    Console.WriteLine($"Error during message sending: {ex.Message}");
-        //                }
-        //            }
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Console.WriteLine($"Error processing file {filePath}: {ex.Message}");
-        //    }
-        //}
-
-        // Method to update UI after sending
-        private void UpdateUIAfterSend(bool workStarted, string phoneNumber)
-        {
-            if (this.InvokeRequired)
-            {
-                this.Invoke(new MethodInvoker(() =>
-                {
-                    UpdateLogMessage(workStarted, phoneNumber);
-                }));
-            }
-            else
-            {
-                UpdateLogMessage(workStarted, phoneNumber);
-            }
-        }
-
-        // Centralized method for logging messages to console (or UI)
-        private void UpdateLogMessage(bool workStarted, string phoneNumber)
-        {
-            if (workStarted)
-            {
-                Console.WriteLine($"Message sent successfully to {phoneNumber}.");
-            }
-            else
-            {
-                Console.WriteLine($"Failed to send message to {phoneNumber}.");
-            }
-        }
-
-        // Method to handle errors in UI
-        private void HandleErrorInUI(string message)
-        {
-            if (this.InvokeRequired)
-            {
-                this.Invoke(new MethodInvoker(() => Console.WriteLine(message)));
-            }
-            else
-            {
-                Console.WriteLine(message);
-            }
-        }
-
-        // Helper method to add file details to the grid
-        public void RemoveFileFromGrid(string filePath)
-        {
-            try
-            {
-                // Ensure gridTargets is not null
-                if (gridTargets == null)
-                {
-                    Console.WriteLine("Grid is not initialized.");
-                    return;
-                }
-
-                string fileName = Path.GetFileNameWithoutExtension(filePath);
-                string[] fileParts = fileName.Split(new char[] { ';', ':' }, StringSplitOptions.RemoveEmptyEntries);
-
-                // Check if fileParts has at least two components
-                if (fileParts.Length < 2)
-                {
-                    Console.WriteLine($"File name format incorrect: {fileName}");
-                    return;
-                }
-
-                // Extract company name and phone number
-                string companyName = fileParts[0].Trim();
-                string phoneNumber = NormalizePhoneNumber(fileParts[1].Trim());
-
-                // Search for the row to remove
-                foreach (DataGridViewRow row in gridTargets.Rows)
-                {
-                    // Ensure row and its cells are not null
-                    if (row != null && row.Cells.Count >= 2)
-                    {
-                        var cellPhoneNumber = row.Cells[0].Value?.ToString(); // Use null conditional operator
-                        var cellCompanyName = row.Cells[1].Value?.ToString(); // Use null conditional operator
-
-                        // Check for null values before comparing
-                        if (cellPhoneNumber == phoneNumber && cellCompanyName == companyName)
-                        {
-                            gridTargets.Rows.Remove(row);
-                            Console.WriteLine($"Removed from grid: {companyName} - {phoneNumber}");
-                            return;
-                        }
-                    }
-                }
-
-                Console.WriteLine($"File not found in grid: {companyName} - {phoneNumber}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error removing file from grid: {ex.Message}");
-            }
-        }
-        private void AddFileToGridSafe(string filePath)
-        {
-            if (this.InvokeRequired)
-            {
-                this.Invoke(new Action(() => AddFileToGrid(filePath)));
-            }
-            else
-            {
-                AddFileToGrid(filePath);
-            }
-        }
-        private string NormalizePhoneNumber(string phoneNumber)
-        {
-            if (phoneNumber.StartsWith("00"))
-            {
-                return "+" + phoneNumber.Substring(2);
-            }
-            return phoneNumber;
-        }
-
-        private void AddFileToGrid(string filePath)
-        {
-            try
-            {
-                string fileName = Path.GetFileNameWithoutExtension(filePath);
-                string[] fileParts = fileName.Split(new char[] { ';', ':' }, StringSplitOptions.RemoveEmptyEntries);
-
-                if (fileParts.Length < 2)
-                {
-                    Console.WriteLine($"File name format incorrect: {fileName}");
-                    return;
-                }
-
-                string companyName = fileParts[0].Trim();
-                string phoneNumber = NormalizePhoneNumber(fileParts[1].Trim());
-
-                // Check for existing entries in the grid
-                foreach (DataGridViewRow row in gridTargets.Rows)
-                {
-                    if (row.Cells[0].Value?.ToString() == phoneNumber && row.Cells[1].Value?.ToString() == companyName)
-                    {
-                        Console.WriteLine($"Entry already exists in grid: {companyName} - {phoneNumber}");
-                        return;
-                    }
-                }
-
-                // Add data to your grid (implement this method based on your grid setup)
-                int rowIndex = gridTargets.Rows.Add();
-                gridTargets.Rows[rowIndex].Cells[0].Value = phoneNumber;
-                gridTargets.Rows[rowIndex].Cells[1].Value = companyName;
-
-                Console.WriteLine($"Added to grid: {companyName} - {phoneNumber}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error adding file to grid: {ex.Message}");
             }
         }
 
@@ -2391,7 +1703,6 @@ namespace WASender
 
 
             wASenderGroupTransModel.messages = new List<MesageModel>();
-            wASenderSingleTransModel.messages.Add(AttachedFileMessageModel);
             wASenderGroupTransModel.messages.Add(CheckAndSendtoMessageModel(txtMsgOneGroup, dataGridView6, pollModelList6));
             wASenderGroupTransModel.messages.Add(CheckAndSendtoMessageModel(txtMsgTwoGroup, dataGridView7, pollModelList7));
             wASenderGroupTransModel.messages.Add(CheckAndSendtoMessageModel(txtMsgTHreeGroup, dataGridView8, pollModelList8));
@@ -2479,7 +1790,6 @@ namespace WASender
             wASenderSingleTransModel.settings.validationFailures = new SingleSettingModelValidator().Validate(wASenderSingleTransModel.settings).Errors;
 
             wASenderSingleTransModel.messages = new List<MesageModel>();
-            wASenderSingleTransModel.messages.Add(AttachedFileMessageModel);
             wASenderSingleTransModel.messages.Add(CheckAndSendtoMessageModel(txtMsgOne, dataGridView1, pollModelList1, buttonsModelList1));
             wASenderSingleTransModel.messages.Add(CheckAndSendtoMessageModel(txtMsgTwo, dataGridView2, pollModelList2, buttonsModelList2));
             wASenderSingleTransModel.messages.Add(CheckAndSendtoMessageModel(txtMsgThree, dataGridView3, pollModelList3, buttonsModelList3));
@@ -2651,10 +1961,6 @@ namespace WASender
                 return false;
             }
         }
-        private MesageModel CheckAndSendtoMessage(MesageModel mesageModel)
-        {
-            return mesageModel;
-        }
 
         private MesageModel CheckAndSendtoMessageModel(MaterialMultiLineTextBox2 txtMsg, DataGridView list, List<PollModel> _pollModel = null, List<ButtonHolderModel> _buttons = null)
         {
@@ -2676,7 +1982,7 @@ namespace WASender
                         }
                     }
 
-                    if (item.Cells[1].Value != null && item.Cells[1].Value.ToString() != "")
+                    if (item.Cells[1].Value.ToString() != null && item.Cells[1].Value.ToString() != "")
                     {
                         filesModel = new FilesModel
                         {
@@ -2697,16 +2003,7 @@ namespace WASender
                     }
                     else
                     {
-                        if (item.Cells[0].Value != null && item.Cells[1].Value != null)
-                        {
-                            files.Add(new FilesModel
-                            {
-                                filePath = item.Cells[0].Value.ToString(),
-                                Caption = item.Cells[1].Value.ToString()
-                            });
-                        }
-
-                        // files.Add(new FilesModel { filePath = item.Cells[0].Value.ToString(), Caption = item.Cells[1].Value.ToString() });
+                        files.Add(new FilesModel { filePath = item.Cells[0].Value.ToString(), Caption = item.Cells[1].Value.ToString() });
                     }
                 }
                 catch (Exception ex)
@@ -4349,10 +3646,6 @@ namespace WASender
             return captionModel;
         }
 
-        private void webBrowser12_DocumentCompleted(object sender, WebBrowserDocumentCompletedEventArgs e)
-        {
-
-        }
 
         private void materialButton34_Click(object sender, EventArgs e)
         {

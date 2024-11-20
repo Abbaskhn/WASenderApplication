@@ -20,12 +20,6 @@ using System.Web;
 using Microsoft.Web.WebView2.WinForms;
 using Models;
 using Newtonsoft.Json;
-using WaAutoReplyBot.Models;
-using static Vanara.Interop.KnownShellItemPropertyKeys;
-using System.Data.Entity.Core.Metadata.Edm;
-using KeySecurity;
-using Microsoft.VisualBasic;
-using System.Runtime.CompilerServices;
 
 namespace WASender
 {
@@ -85,10 +79,9 @@ namespace WASender
             }
             _testClass = Utils.testClass;
             _testClass.OnUpdateStatus += _testClass_OnUpdateStatus;
-        
         }
 
-        public void initWABrowser()
+        private void initWABrowser()
         {
             ChangeInitStatus(InitStatusEnum.Initialising);
             retryAttempt = 0;
@@ -163,7 +156,7 @@ namespace WASender
         {
             if (schedulesModel != null)
             {
-                await System.Threading.Tasks.Task.Delay(2000);
+                await Task.Delay(2000);
                 initBaseWA();
             }
         }
@@ -279,40 +272,27 @@ namespace WASender
             timerInitChecker.Tick += timerInitChecker_Tick;
             timerInitChecker.Start();
         }
-        private bool isWAInitialized ;  // Flag to track if WhatsApp is initialized
+
 
         private void initWA()
         {
-            // Check if WhatsApp is already initialized
-            if (isWAInitialized)
-            {
-                Console.WriteLine("WhatsApp is already initialized, skipping reinitialization.");
-                return; // Skip the initialization process
-            }
-
-            // Mark initialization status as starting
             ChangeInitStatus(InitStatusEnum.Initialising);
 
             try
             {
-                // Check if driver window handles can be accessed (indicating an active session)
-                var s = driver?.WindowHandles;
+                var s = driver.WindowHandles;
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Exception during driver window handles check: " + ex.Message);
-
-                // If driver initialization failed, set up a new driver
                 try
                 {
                     Utils.Driver = null;
                     Utils.SetDriver();
                     this.driver = Utils.Driver;
                 }
-                catch (Exception driverException)
+                catch (Exception eex)
                 {
-                    // Handle specific issues related to driver setup
-                    if (driverException.Message.Contains("The specified executable is not a valid application for this OS platform"))
+                    if (eex.Message.Contains("The specified executable is not a valid application for this OS platform"))
                     {
                         if (generalSettingsModel.browserType == 2)
                         {
@@ -322,37 +302,28 @@ namespace WASender
                         {
                             MessageBox.Show(Strings.ChromeDriversarenotDownloadedProperly, Strings.Error, MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
-                        return;
                     }
                 }
             }
 
+
             try
             {
-                // Check if the driver is still null (indicating an unsuccessful setup)
                 if (driver == null)
                 {
-                    Console.WriteLine("Driver was null, setting up a new driver instance.");
                     Utils.SetDriver();
                     this.driver = Utils.Driver;
                 }
 
-                // Proceed with QR scan check
-                checkQRScanDone();
 
-                // Set the WhatsApp initialization flag to true after successful initialization
-                isWAInitialized = true;
-                Console.WriteLine("WhatsApp initialization completed successfully.");
+                checkQRScanDone();
             }
             catch (Exception ex)
             {
-                // Handle initialization failure cases
                 ChangeInitStatus(InitStatusEnum.Unable);
-
-                // Handle specific Chrome driver version mismatch
                 if (ex.Message.Contains("session not created"))
                 {
-                    DialogResult dr = MessageBox.Show("Your Chrome Driver and Google Chrome Version Is not the same. Click 'Yes' to update from settings.", "Error", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Error);
+                    DialogResult dr = MessageBox.Show("Your Chrome Driver and Google Chrome Version Is not same, Click 'Yes botton' to Update it from Settings ", "Error ", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Error);
                     if (dr == DialogResult.Yes)
                     {
                         this.waSenderForm.Show();
@@ -360,35 +331,22 @@ namespace WASender
                         this.Close();
                     }
                 }
-                // Handle 'user data directory already in use' error
+
                 else if (ex.Message.Contains("invalid argument: user data directory is already in use"))
                 {
                     _Config.KillChromeDriverProcess();
-                    MaterialSnackBar snackBarMessage = new MaterialSnackBar("Please close all previous sessions and browsers if open, then try again", Strings.OK, true);
-                    snackBarMessage.Show(this);
+                    MaterialSnackBar SnackBarMessage = new MaterialSnackBar("Please Close All Previous Sessions and Browsers if open, Then try again", Strings.OK, true);
+                    SnackBarMessage.Show(this);
                 }
             }
         }
-
-
-        // This method is triggered from the button to initialize WhatsApp if not already initialized
         private void btnInitWA_Click(object sender, EventArgs e)
         {
-        
-            if (!isWAInitialized)
-            {
-                initBaseWA();
-            }
-            else
-            {
-                // If already initialized, directly proceed with the message sending
-                doStartWork();
-            }
+            initBaseWA();
         }
 
-        public void initBaseWA()
+        private void initBaseWA()
         {
-            // Initialize based on browser type, and set initialization flag
             if (generalSettingsModel.browserType == 1)
             {
                 initWA();
@@ -397,101 +355,13 @@ namespace WASender
             {
                 initWABrowser();
             }
-
-            // Set initialization flag to true once initialized
-            isWAInitialized = true;
         }
-
-
-
-        //private void initWA()
-        //{
-        //    ChangeInitStatus(InitStatusEnum.Initialising);
-
-        //    try
-        //    {
-        //        var s = driver.WindowHandles;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        try
-        //        {
-        //            Utils.Driver = null;
-        //            Utils.SetDriver();
-        //            this.driver = Utils.Driver;
-        //        }
-        //        catch (Exception eex)
-        //        {
-        //            if (eex.Message.Contains("The specified executable is not a valid application for this OS platform"))
-        //            {
-        //                if (generalSettingsModel.browserType == 2)
-        //                {
-        //                    MessageBox.Show(Strings.MSEdgeDriversarenotDownloadedProperly, Strings.Error, MessageBoxButtons.OK, MessageBoxIcon.Error);
-        //                }
-        //                if (generalSettingsModel.browserType == 1)
-        //                {
-        //                    MessageBox.Show(Strings.ChromeDriversarenotDownloadedProperly, Strings.Error, MessageBoxButtons.OK, MessageBoxIcon.Error);
-        //                }
-        //            }
-        //        }
-        //    }
-
-
-        //    try
-        //    {
-        //        if (driver == null)
-        //        {
-        //            Utils.SetDriver();
-        //            this.driver = Utils.Driver;
-        //        }
-
-
-        //        checkQRScanDone();
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        ChangeInitStatus(InitStatusEnum.Unable);
-        //        if (ex.Message.Contains("session not created"))
-        //        {
-        //            DialogResult dr = MessageBox.Show("Your Chrome Driver and Google Chrome Version Is not same, Click 'Yes botton' to Update it from Settings ", "Error ", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Error);
-        //            if (dr == DialogResult.Yes)
-        //            {
-        //                this.waSenderForm.Show();
-        //                this.waSenderForm.OpenGeneralSettings();
-        //                this.Close();
-        //            }
-        //        }
-
-        //        else if (ex.Message.Contains("invalid argument: user data directory is already in use"))
-        //        {
-        //            _Config.KillChromeDriverProcess();
-        //            MaterialSnackBar SnackBarMessage = new MaterialSnackBar("Please Close All Previous Sessions and Browsers if open, Then try again", Strings.OK, true);
-        //            SnackBarMessage.Show(this);
-        //        }
-        //    }
-        //}
-        //private void btnInitWA_Click(object sender, EventArgs e)
-        //{
-        //    initBaseWA();
-        //}
-
-        //public void initBaseWA()
-        //{
-        //    if (generalSettingsModel.browserType == 1)
-        //    {
-        //        initWA();
-        //    }
-        //    else if (generalSettingsModel.browserType == 2)
-        //    {
-        //        initWABrowser();
-        //    }
-        //}
 
         private async void startAutoRun()
         {
             if (schedulesModel != null)
             {
-                await System.Threading.Tasks.Task.Delay(2000);
+                await Task.Delay(2000);
                 if (generalSettingsModel.filterNumbersBeforeSendingMessage == true)
                 {
                     oppUpFilter();
@@ -636,6 +506,7 @@ namespace WASender
 
 
         private static bool CanStopWaitingForDelevetry = false;
+
         private void SendMessage(MesageModel mesageModel, bool isFirstMessage, ContactModel item, WebView2 wv)
         {
             try
@@ -687,11 +558,11 @@ namespace WASender
                             {
                                 if (generalSettingsModel.browserType == 1)
                                 {
-                                    WAPIHelper.SendVideo(driver, item.number, fullBase64, NewMessage, file.fileName, holder);
+                                    WAPIHelper.SendVideo(driver, item.number, fullBase64, NewMessage, file.fileName,holder);
                                 }
                                 else if (generalSettingsModel.browserType == 2)
                                 {
-                                    WPPHelper.SendVideoAsync(wv, item.number, fullBase64, NewMessage, "", holder);
+                                    WPPHelper.SendVideoAsync(wv, item.number, fullBase64, NewMessage, "",holder);
                                 }
 
                                 AutoSend = false;
@@ -737,7 +608,7 @@ namespace WASender
                                 }
                                 else if (generalSettingsModel.browserType == 2)
                                 {
-                                    WPPHelper.SendAudioAsync(wv, item.number, fullBase64, NewMessage, holder);
+                                    WPPHelper.SendAudioAsync(wv, item.number, fullBase64, NewMessage,holder);
                                 }
 
                                 AutoSend = false;
@@ -751,7 +622,7 @@ namespace WASender
                                 }
                                 else if (generalSettingsModel.browserType == 2)
                                 {
-                                    WPPHelper.SendAudioAsync(wv, item.number, fullBase64, file.Caption, holder);
+                                    WPPHelper.SendAudioAsync(wv, item.number, fullBase64, file.Caption,holder);
                                 }
                             }
                         }
@@ -774,11 +645,11 @@ namespace WASender
                             {
                                 if (generalSettingsModel.browserType == 1)
                                 {
-                                    WAPIHelper.SendVideo(driver, item.number, fullBase64, NewMessage, file.fileName, holder);
+                                    WAPIHelper.SendVideo(driver, item.number, fullBase64, NewMessage, file.fileName,holder);
                                 }
                                 else if (generalSettingsModel.browserType == 2)
                                 {
-                                    WPPHelper.SendVideoAsync(wv, item.number, fullBase64, NewMessage, file.fileName, holder);
+                                    WPPHelper.SendVideoAsync(wv, item.number, fullBase64, NewMessage, file.fileName,holder);
                                 }
 
                                 AutoSend = false;
@@ -911,7 +782,7 @@ namespace WASender
                             }
 
                         }
-                        else if (holder != null)
+                        else if (holder !=null)
                         {
                             if (generalSettingsModel.browserType == 1)
                             {
@@ -919,7 +790,7 @@ namespace WASender
                             }
                             else if (generalSettingsModel.browserType == 2)
                             {
-                                WPPHelper.SendDirectMessageAsync(wv, item.number, NewMessage, holder);
+                                WPPHelper.SendDirectMessageAsync(wv, item.number, NewMessage,holder);
                             }
                         }
 
@@ -971,7 +842,8 @@ namespace WASender
             }
         }
 
-        public async Task<bool> SendMessageSync(MesageModel mesageModel, bool isFirstMessage, ContactModel item, WebView2 wv)
+
+        private async Task<bool> SendMessageSync(MesageModel mesageModel, bool isFirstMessage, ContactModel item, WebView2 wv)
         {
             try
             {
@@ -981,28 +853,19 @@ namespace WASender
                 {
                     AutoSend = false;
                 }
-                string doneFolderPath = Path.Combine(Path.GetDirectoryName(mesageModel.files.FirstOrDefault()?.filePath ?? ""), "done");
-
-                // Create the "done" folder if it does not exist
-                if (!Directory.Exists(doneFolderPath))
-                {
-                    Directory.CreateDirectory(doneFolderPath);
-                }
 
                 isFirstMessage = false;
                 //await Task.Delay(500);
                 string NewMessage = ProjectCommon.ReplaceKeyMarker(mesageModel.longMessage, item.parameterModelList);
 
                 ButtonHolderModel holder = null;
-                if (mesageModel.buttons != null && mesageModel.buttons.Count() > 0)
+                if (mesageModel.buttons.Count() > 0)
                 {
                     holder = mesageModel.buttons[0];
                 }
 
                 foreach (var file in mesageModel.files)
                 {
-                    // string newFilePath = Path.Combine(doneFolderPath, Path.GetFileName(file.filePath));
-
                     file.fileName = Path.GetFileName(file.filePath);
                     Byte[] bytes = File.ReadAllBytes(file.filePath);
                     String filebase64 = Convert.ToBase64String(bytes);
@@ -1026,18 +889,18 @@ namespace WASender
                                 file.Caption = ProjectCommon.ReplaceKeyMarker(file.Caption, item.parameterModelList);
                             }
 
-
+                           
 
 
                             if (file.attachWithMainMessage == true)
                             {
                                 if (generalSettingsModel.browserType == 1)
                                 {
-                                    WAPIHelper.SendVideo(driver, item.number, fullBase64, NewMessage, file.fileName, holder);
+                                    WAPIHelper.SendVideo(driver, item.number, fullBase64, NewMessage, file.fileName,holder);
                                 }
                                 else if (generalSettingsModel.browserType == 2)
                                 {
-                                    bool isDOne = await WPPHelper.SendVideosync(wv, item.number, fullBase64, NewMessage, "", holder);
+                                    bool isDOne=await WPPHelper.SendVideosync(wv, item.number, fullBase64, NewMessage,"",holder);
                                 }
 
                                 AutoSend = false;
@@ -1073,14 +936,14 @@ namespace WASender
                                 file.Caption = ProjectCommon.ReplaceKeyMarker(file.Caption, item.parameterModelList);
                             }
 
-
+                          
                             fullBase64 = fullBase64.Replace("data:application/octet-stream;", "data:audio/mp3;");
 
                             if (file.attachWithMainMessage == true)
                             {
                                 if (generalSettingsModel.browserType == 1)
                                 {
-                                    WAPIHelper.SendAudio(driver, item.number, fullBase64, NewMessage, holder);
+                                    WAPIHelper.SendAudio(driver, item.number, fullBase64, NewMessage,holder);
                                 }
                                 else if (generalSettingsModel.browserType == 2)
                                 {
@@ -1117,49 +980,16 @@ namespace WASender
                                 file.Caption = ProjectCommon.ReplaceKeyMarker(file.Caption, item.parameterModelList);
                             }
 
-
+                            
                             if (file.attachWithMainMessage == true)
                             {
                                 if (generalSettingsModel.browserType == 1)
                                 {
-
-                                    WAPIHelper.SendVideo(driver, item.number, fullBase64, NewMessage, file.fileName, holder);
+                                    WAPIHelper.SendVideo(driver, item.number, fullBase64, NewMessage, file.fileName,holder);
                                 }
                                 else if (generalSettingsModel.browserType == 2)
                                 {
-
-                                    string[] parts = file.fileName.Split(';', ':');
-                                    string phoneNumber = "";
-                                    if (parts.Length > 1)
-                                    {
-                                        phoneNumber = parts[1];
-
-                                        // Remove the leading '00' if it exists
-                                        if (phoneNumber.StartsWith("00"))
-                                        {
-                                            phoneNumber = phoneNumber.Substring(2);
-                                        }
-
-                                        Console.WriteLine(phoneNumber); // Output: 923449673487
-                                    }
-                                    else
-                                    {
-                                        Console.WriteLine("Invalid filename format.");
-                                    }
-
-
-                                    if (true || phoneNumber == item.number)
-                                    {
-                                        bool isDone = await WPPHelper.SendVideosync(wv, phoneNumber, fullBase64, NewMessage, file.fileName, holder);
-                                        isDone = MoveToDone(doneFolderPath, file);
-                                        waSenderForm.RemoveFileFromGrid(file.filePath);
-                                    }
-
-                                    //if (phoneNumber == item.number)
-                                    //{
-                                    //    bool isDone = await WPPHelper.SendVideosync(wv, item.number, fullBase64, NewMessage, file.fileName, holder);
-                                    //    isDone = MoveToDone(doneFolderPath, file);
-                                    //}
+                                    bool isDone = await WPPHelper.SendVideosync(wv, item.number, fullBase64, NewMessage, file.fileName,holder);
                                 }
 
                                 AutoSend = false;
@@ -1173,14 +1003,10 @@ namespace WASender
                                 }
                                 else if (generalSettingsModel.browserType == 2)
                                 {
-                                    bool isDOne = await WPPHelper.SendAttachmentsync(wv, item.number, fullBase64, FileName, file.Caption);
-
+                                    bool isDOne=await WPPHelper.SendAttachmentsync(wv, item.number, fullBase64, FileName, file.Caption);
                                 }
 
                             }
-
-
-
                             file.Caption = OriginalCaption;
 
                         }
@@ -1190,7 +1016,7 @@ namespace WASender
                         }
                     }
 
-                    await System.Threading.Tasks.Task.Delay(Utils.getRandom(wASenderSingleTransModel.settings.delayAfterEveryMessageFrom * 1000, wASenderSingleTransModel.settings.delayAfterEveryMessageTo * 1000));
+                    await Task.Delay(Utils.getRandom(wASenderSingleTransModel.settings.delayAfterEveryMessageFrom * 1000, wASenderSingleTransModel.settings.delayAfterEveryMessageTo * 1000));
                 }
 
 
@@ -1208,13 +1034,13 @@ namespace WASender
                                 {
                                     try
                                     {
-                                        if (!generalSettingsModel.disableLinkPreview && holder == null)
+                                        if (!generalSettingsModel.disableLinkPreview && holder==null)
                                         {
                                             WAPIHelper.sendTextMessageWithPreview(driver, item.number, NewMessage, false);
                                         }
                                         else
                                         {
-                                            WAPIHelper.SendMessage(driver, item.number, NewMessage, false, false, holder);
+                                            WAPIHelper.SendMessage(driver, item.number, NewMessage,false,false,holder);
                                         }
 
                                     }
@@ -1227,13 +1053,13 @@ namespace WASender
                                 {
                                     try
                                     {
-                                        if (!generalSettingsModel.disableLinkPreview && holder == null)
+                                        if (!generalSettingsModel.disableLinkPreview && holder ==null)
                                         {
-                                            bool isDone = await WPPHelper.sendTextMessageWithPreviewSync(wv, item.number, NewMessage);
+                                            bool isDone=await WPPHelper.sendTextMessageWithPreviewSync(wv, item.number, NewMessage);
                                         }
                                         else
                                         {
-                                            bool isDOne = await WPPHelper.SendMessageSync(wv, item.number, NewMessage, false, false, holder);
+                                            bool isDOne = await WPPHelper.SendMessageSync(wv, item.number, NewMessage,false,false,holder);
                                         }
 
                                     }
@@ -1245,32 +1071,22 @@ namespace WASender
                             }
                             else
                             {
-
-                                //if (generalSettingsModel.browserType == 1)
-                                //{
-                                //    if (NewMessage ==null)
-                                //    {
-                                //        WAPIHelper.SendMessage(driver, item.number, NewMessage,false,false,holder);
-                                //    }
-
-                                //}
-                                //else if (generalSettingsModel.browserType == 2)
-                                //{
-                                //    if (NewMessage ==null)
-                                //    {
-                                //        bool isDOne = await WPPHelper.SendMessageSync(wv, item.number, NewMessage,false,false,holder);
-                                //    }
-
-                                //}
+                                
                                 if (generalSettingsModel.browserType == 1)
                                 {
+                                    if (NewMessage != "")
+                                    {
+                                        WAPIHelper.SendMessage(driver, item.number, NewMessage,false,false,holder);
+                                    }
 
-                                    WAPIHelper.SendMessage(driver, item.number, NewMessage ?? string.Empty, false, false, holder);
                                 }
                                 else if (generalSettingsModel.browserType == 2)
                                 {
+                                    if (NewMessage != "")
+                                    {
+                                        bool isDOne = await WPPHelper.SendMessageSync(wv, item.number, NewMessage,false,false,holder);
+                                    }
 
-                                    bool isDone = await WPPHelper.SendMessageSync(wv, item.number, NewMessage ?? string.Empty, false, false, holder);
                                 }
 
 
@@ -1285,12 +1101,12 @@ namespace WASender
                                     if (generalSettingsModel.browserType == 1)
                                     {
                                         WAPIHelper.sendCreatePollMessageToNumber(driver, item.number, poll);
-                                        await System.Threading.Tasks.Task.Delay(500);
+                                        await Task.Delay(500);
                                     }
                                     else if (generalSettingsModel.browserType == 2)
                                     {
-                                        bool isDone = await WPPHelper.sendCreatePollMessageToNumberSync(wv, item.number, poll);
-                                        await System.Threading.Tasks.Task.Delay(500);
+                                        bool isDone= await WPPHelper.sendCreatePollMessageToNumberSync(wv, item.number, poll);
+                                        await Task.Delay(500);
                                     }
                                 }
                                 catch (Exception ex)
@@ -1310,7 +1126,7 @@ namespace WASender
 
                 }
 
-                await System.Threading.Tasks.Task.Delay(Utils.getRandom(wASenderSingleTransModel.settings.delayAfterEveryMessageFrom * 1000, wASenderSingleTransModel.settings.delayAfterEveryMessageTo * 1000));
+                await Task.Delay(Utils.getRandom(wASenderSingleTransModel.settings.delayAfterEveryMessageFrom * 1000, wASenderSingleTransModel.settings.delayAfterEveryMessageTo * 1000));
 
 
 
@@ -1323,7 +1139,7 @@ namespace WASender
             return true;
         }
 
-        public async Task<bool> doStartWork()
+        private async Task<bool> doStartWork()
         {
             int counter = 0;
             int totalCounter = 0;
@@ -1348,14 +1164,9 @@ namespace WASender
 
                             if (accountSwitchCounter < accountSwitchNumber)
                             {
-                                MinimumNumber = 0;
-                                assignableAccount.usedCount = assignableAccount.usedCount + 1;
-
-                                MinimumNumber = wASenderSingleTransModel.selectedAccounts.Min(x => x.usedCount);
-                                assignableAccount = wASenderSingleTransModel.selectedAccounts.OrderBy(x => Convert.ToInt32(x.ID)).Where(x => x.usedCount == MinimumNumber).FirstOrDefault();
                                 contact.senderName = assignableAccount.sessionName;
                                 contact.senderId = assignableAccount.ID;
-                                accountSwitchCounter = 1;
+                                accountSwitchCounter++;
                             }
                             else
                             {
@@ -1421,7 +1232,7 @@ namespace WASender
                                     {
                                         await WPPHelper.InjectWapiSync(wv, Config.GetSysFolderPath());
                                         mainUC._isWPPIJected = true;
-                                        await System.Threading.Tasks.Task.Delay(1000);
+                                        await Task.Delay(1000);
                                     }
 
                                 }
@@ -1593,7 +1404,6 @@ namespace WASender
                                     try
                                     {
                                         bool isDOne = await SendMessageSync(mesageModel, isFirstMessage, item, wv);
-
                                     }
                                     catch (Exception ex)
                                     {
@@ -1609,7 +1419,7 @@ namespace WASender
                                 if (wASenderSingleTransModel.settings.delayAfterMessages == counter)
                                 {
                                     counter = 0;
-                                    await System.Threading.Tasks.Task.Delay(Utils.getRandom(wASenderSingleTransModel.settings.delayAfterMessagesFrom * 1000, wASenderSingleTransModel.settings.delayAfterMessagesFrom * 1000));
+                                    await Task.Delay(Utils.getRandom(wASenderSingleTransModel.settings.delayAfterMessagesFrom * 1000, wASenderSingleTransModel.settings.delayAfterMessagesFrom * 1000));
                                 }
                             }
                             catch (Exception ex)
@@ -1663,7 +1473,7 @@ namespace WASender
                     item.logged = true;
                 }
             }
-            int total = wASenderSingleTransModel.contactList.Count();
+            int total= wASenderSingleTransModel.contactList.Count();
             int Completed = wASenderSingleTransModel.contactList.Where(x => x.sendStatusModel.isDone == true).Count();
 
             var value = ((double)Completed / total) * 100;
@@ -2116,7 +1926,7 @@ namespace WASender
 
                     bool isDOne = await doStartWork();
 
-                    //  campaign_completed();
+                    campaign_completed();
                 }
                 catch (Exception ex)
                 {
@@ -2194,95 +2004,5 @@ namespace WASender
             IsStopped = true;
             IsPaused = false;
         }
-
-
-
-        private Boolean MoveToDone(string doneFolderPath, FilesModel file)
-        {
-            try
-            {
-                string sourcePath = file.filePath;
-                string destinationFileName = Path.GetFileName(sourcePath);
-                string destinationPath = Path.Combine(doneFolderPath, destinationFileName);
-
-                // Check if the destination file already exists
-                if (File.Exists(destinationPath))
-                {
-                    // Generate a unique file name to avoid overwriting
-                    string newFileName = $"{Path.GetFileNameWithoutExtension(destinationFileName)}_{DateTime.Now:yyyyMMddHHmmss}{Path.GetExtension(destinationFileName)}";
-                    destinationPath = Path.Combine(doneFolderPath, newFileName);
-                }
-
-                // Check if the source file exists before moving
-                if (File.Exists(sourcePath))
-                {
-                    File.Move(sourcePath, destinationPath);
-                    logger.WriteLog($"File moved to: {destinationPath}");
-                    return true; // Return true if the move is successful
-                }
-                else
-                {
-                    logger.WriteLog($"Source file not found: {sourcePath}");
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.WriteLog($"Error moving file: {ex.Message}");
-            }
-
-            return false; // Return false if the move failed
-        }
-
-        private void materialCard2_Paint(object sender, PaintEventArgs e)
-        {
-
-        }
-
-        private void lblInitStatus_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void label5_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        //private Boolean MoveToDone(string doneFolderPath, FilesModel file)
-        //{
-        //    try
-        //    {
-        //        string sourcePath = file.filePath;
-        //        string destinationFileName = Path.GetFileName(sourcePath);
-        //        string destinationPath = Path.Combine(doneFolderPath, destinationFileName);
-
-        //        // Check if the destination file already exists
-        //        if (File.Exists(destinationPath))
-        //        {
-        //            // Generate a unique file name to avoid overwriting
-        //            string newFileName = $"{Path.GetFileNameWithoutExtension(destinationFileName)}_{DateTime.Now:yyyyMMddHHmmss}{Path.GetExtension(destinationFileName)}";
-        //            destinationPath = Path.Combine(doneFolderPath, newFileName);
-        //        }
-
-        //        // Check if the source file exists before moving
-        //        if (File.Exists(sourcePath))
-        //        {
-        //            File.Move(sourcePath, destinationPath);
-        //            logger.WriteLog($"File moved to: {destinationPath}");
-        //        }
-        //        else
-        //        {
-        //            logger.WriteLog($"Source file not found: {sourcePath}");
-        //        }
-
-        //        return false;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        logger.WriteLog($"Error moving file: {ex.Message}");
-        //    }
-
-        //    return false;
-        //}
     }
 }
