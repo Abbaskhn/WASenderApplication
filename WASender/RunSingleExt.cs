@@ -864,7 +864,7 @@ namespace WASender
                 string NewMessage = ProjectCommon.ReplaceKeyMarker(mesageModel.longMessage, item.parameterModelList);
 
                 ButtonHolderModel holder = null;
-                if (mesageModel.buttons.Count() > 0)
+                if (mesageModel.buttons!=null && mesageModel.buttons.Count() > 0)
                 {
                     holder = mesageModel.buttons[0];
                 }
@@ -990,11 +990,44 @@ namespace WASender
                             {
                                 if (generalSettingsModel.browserType == 1)
                                 {
+
                                     WAPIHelper.SendVideo(driver, item.number, fullBase64, NewMessage, file.fileName, holder);
                                 }
                                 else if (generalSettingsModel.browserType == 2)
                                 {
-                                    bool isDone = await WPPHelper.SendVideosync(wv, item.number, fullBase64, NewMessage, file.fileName, holder);
+
+                                    string[] parts = file.fileName.Split(';', ':');
+                                    string phoneNumber = "";
+                                    if (parts.Length > 1)
+                                    {
+                                        phoneNumber = parts[1];
+
+                                        // Remove the leading '00' if it exists
+                                        if (phoneNumber.StartsWith("00"))
+                                        {
+                                            phoneNumber = phoneNumber.Substring(2);
+                                        }
+
+                                        Console.WriteLine(phoneNumber); // Output: 923449673487
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("Invalid filename format.");
+                                    }
+
+
+                                    if (true || phoneNumber == item.number)
+                                    {
+
+                                        bool isDone = await WPPHelper.SendVideosync(wv, phoneNumber, fullBase64, NewMessage, "", holder);
+                                      
+                                    }
+
+                                    //if (phoneNumber == item.number)
+                                    //{
+                                    //    bool isDone = await WPPHelper.SendVideosync(wv, item.number, fullBase64, NewMessage, file.fileName, holder);
+                                    //    isDone = MoveToDone(doneFolderPath, file);
+                                    //}
                                 }
 
                                 AutoSend = false;
@@ -1009,9 +1042,13 @@ namespace WASender
                                 else if (generalSettingsModel.browserType == 2)
                                 {
                                     bool isDOne = await WPPHelper.SendAttachmentsync(wv, item.number, fullBase64, FileName, file.Caption);
+
                                 }
 
                             }
+
+
+
                             file.Caption = OriginalCaption;
 
                         }
@@ -1020,6 +1057,7 @@ namespace WASender
                             logger.WriteLog("Is Number Valid-" + eex.Message);
                         }
                     }
+
 
                     await Task.Delay(Utils.getRandom(wASenderSingleTransModel.settings.delayAfterEveryMessageFrom * 1000, wASenderSingleTransModel.settings.delayAfterEveryMessageTo * 1000));
                 }
@@ -1956,7 +1994,7 @@ namespace WASender
                     string folderPath = @"D:\File";
                     while (!IsStopped)
                     {
-                        // Check if folder exists
+                       
                         if (!Directory.Exists(folderPath))
                         {
                             Console.WriteLine($"Folder does not exist: {folderPath}");
@@ -1968,7 +2006,7 @@ namespace WASender
                         if (files.Length == 0)
                         {
                             Console.WriteLine("No files to process. Waiting for new files...");
-                            await Task.Delay(5000); // Wait for 5 seconds before checking again
+                            await Task.Delay(5000);
                             continue;
                         }
 
@@ -1976,7 +2014,7 @@ namespace WASender
                         {
                             try
                             {
-                                // Extract phone number and company name from the file name
+                              
                                 string fileName = Path.GetFileNameWithoutExtension(filePath);
                                 string[] fileParts = fileName.Split(new char[] { ';', ':' }, StringSplitOptions.RemoveEmptyEntries);
 
@@ -1986,20 +2024,25 @@ namespace WASender
                                     continue;
                                 }
 
-                                // Assign extracted values
-                                string companyName = fileParts[0].Trim(); // Company name
-                                string phoneNumber = fileParts[1].Trim(); // Phone number
+                                string companyName = fileParts[0].Trim();
+                                string phoneNumber = fileParts[1].Trim();
 
-                                // Prepare the file as a Base64 attachment
+                             
                                 byte[] fileBytes = File.ReadAllBytes(filePath);
                                 string fileBase64 = Convert.ToBase64String(fileBytes);
                                 string contentType = "application/pdf";
                                 string fullBase64 = $"data:{contentType};base64,{fileBase64}";
 
 
+
+                                if (phoneNumber.StartsWith("00"))
+                                {
+                                    phoneNumber = "+" + phoneNumber.Substring(2);
+                                }
+
                                 MesageModel messageModel = new MesageModel
                                 {
-                                    longMessage = $"Dear {companyName}, please find the attached document.",
+                                    longMessage = $" {companyName}",
                                     files = new List<FilesModel>
                                         {
                                             new FilesModel
@@ -2044,7 +2087,7 @@ namespace WASender
                             }
                         }
                         files = Directory.GetFiles(folderPath);
-                        //await Task.Delay(5000);
+                       
                     }
                 }
                 catch (Exception ex)
