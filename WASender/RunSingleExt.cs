@@ -15,6 +15,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using System.Windows.Forms;
+using WaAutoReplyBot.Models;
 using WASender.enums;
 using WASender.Models;
 
@@ -1927,6 +1928,8 @@ namespace WASender
             btnStartClick();
         }
 
+        private MesageModel AttachedFileMessageModel;
+
         private async void btnStartClick()
         {
             logger.WriteLog("CLicked");
@@ -1949,30 +1952,100 @@ namespace WASender
                     ChangeCampStatus(CampaignStatusEnum.Running);
                     startProgressBar();
                     //initTimer();
-                    bool isDOne = false;
-                    while (true)
+                    
+                    string folderPath = @"D:\File";
+                    while (!IsStopped)
                     {
-                        // read files in folder
-                        foreach (var file in files)
+                        // Check if folder exists
+                        if (!Directory.Exists(folderPath))
                         {
-                            //1 contact,  List? 
-                            //wASenderSingleTransModel.contactList=list;
-                            //1 message ,messaglist
-                            //
-                            //wASenderSingleTransModel.messages =messaglist;
-                            //1 file , filelist
-                            //wASenderSingleTransModel.files
-                            //wASenderSingleTransModel.contactList
-                            await doStartWork();
+                            Console.WriteLine($"Folder does not exist: {folderPath}");
+                            break;
                         }
-                        // remove files to done folder
+
+                        string[] files = Directory.GetFiles(folderPath);
+
+                        if (files.Length == 0)
+                        {
+                            Console.WriteLine("No files to process. Waiting for new files...");
+                            await Task.Delay(5000); // Wait for 5 seconds before checking again
+                            continue;
+                        }
+
+                        foreach (var filePath in files)
+                        {
+                            try
+                            {
+                                // Extract phone number and company name from the file name
+                                string fileName = Path.GetFileNameWithoutExtension(filePath);
+                                string[] fileParts = fileName.Split(new char[] { ';', ':' }, StringSplitOptions.RemoveEmptyEntries);
+
+                                if (fileParts.Length < 2)
+                                {
+                                    Console.WriteLine($"File name format incorrect: {fileName}");
+                                    continue;
+                                }
+
+                                // Assign extracted values
+                                string companyName = fileParts[0].Trim(); // Company name
+                                string phoneNumber = fileParts[1].Trim(); // Phone number
+
+                                // Prepare the file as a Base64 attachment
+                                byte[] fileBytes = File.ReadAllBytes(filePath);
+                                string fileBase64 = Convert.ToBase64String(fileBytes);
+                                string contentType = "application/pdf";
+                                string fullBase64 = $"data:{contentType};base64,{fileBase64}";
 
 
+                                MesageModel messageModel = new MesageModel
+                                {
+                                    longMessage = $"Dear {companyName}, please find the attached document.",
+                                    files = new List<FilesModel>
+                                        {
+                                            new FilesModel
+                                            {
+                                                filePath = filePath,
+                                                fileName = Path.GetFileName(filePath),
+                                                attachWithMainMessage = true
+                                            }
+                                        }
+                                };
+
+                                this.wASenderSingleTransModel.messages = new List<MesageModel>();
+                                this.wASenderSingleTransModel.messages.Add(messageModel);
+                                // AttachedFileMessageModel = messageModel;
+
+                                ContactModel contactModel = new ContactModel
+                                {
+                                    number = phoneNumber
+                                };
+                                this.wASenderSingleTransModel.contactList = new List<ContactModel>();
+                                this.wASenderSingleTransModel.contactList.Add(contactModel);
+
+
+
+                                await doStartWork();
+
+
+                                string doneFolder = Path.Combine(folderPath, "Done");
+                                if (!Directory.Exists(doneFolder))
+                                {
+                                    Directory.CreateDirectory(doneFolder);
+                                }
+
+                                string destinationPath = Path.Combine(doneFolder, Path.GetFileName(filePath));
+                                File.Move(filePath, destinationPath);
+                                Console.WriteLine($"Moved file to: {destinationPath}");
+                               
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"Error processing file {filePath}: {ex.Message}");
+                            }
+                        }
+                        files = Directory.GetFiles(folderPath);
+                        //await Task.Delay(5000);
                     }
-
-                    //isDOne = await doStartWork();
-                    campaign_completedExt();
-                    //campaign_completed();
                 }
                 catch (Exception ex)
                 {

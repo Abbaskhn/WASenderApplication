@@ -13,7 +13,7 @@ namespace WASender
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            //Application.Run(new WaSenderForm(args));
+           // Application.Run(new WaSenderForm(args));
             Application.Run(new RunSingleExt());
             //Application.Run(new InfoWindow());
 

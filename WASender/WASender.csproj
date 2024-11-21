@@ -790,6 +790,9 @@
     <Content Include="LogoWA.ico" />
     <Content Include="Resources\01.png" />
     <Content Include="Resources\02.png" />
+    <Content Include="SampleConfig\WASenderSingleTransModel - Copy.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="SampleConfig\WASenderSingleTransModel.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

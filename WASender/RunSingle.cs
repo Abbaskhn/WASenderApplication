@@ -46,13 +46,11 @@ namespace WASender
             InitializeComponent();
             this.Icon = Strings.AppIcon;
             logger = new Logger("RunSingle");
-            // string jsonString = Newtonsoft.Json.JsonConvert.SerializeObject(_wASenderSingleTransModel);
+             string jsonString = Newtonsoft.Json.JsonConvert.SerializeObject(_wASenderSingleTransModel);
 
             this.waSenderForm = _waSenderForm;
-            string jsonFromFile = File.ReadAllText(@"SampleConfig\WASenderSingleTransModel.txt");
-            WASenderSingleTransModel deserializedObject = JsonConvert.DeserializeObject<WASenderSingleTransModel>(jsonFromFile);
-            this.wASenderSingleTransModel = deserializedObject;
-            //this.wASenderSingleTransModel = _wASenderSingleTransModel;
+          
+           this.wASenderSingleTransModel = _wASenderSingleTransModel;
             this.Text = _wASenderSingleTransModel.CampaignName;
             forceScheduleRun = _forceScheduleRun;
             if (_schedulesModel == null)
