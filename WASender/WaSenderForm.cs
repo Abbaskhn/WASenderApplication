@@ -1,15 +1,11 @@
 ﻿
 using FluentValidation.Results;
-using MaterialSkin;
 using MaterialSkin.Controls;
 using Models;
 using Newtonsoft.Json;
 using OfficeOpenXml;
-using OpenQA.Selenium;
-using OpenQA.Selenium.Chrome;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Drawing;
@@ -17,7 +13,6 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -139,7 +134,7 @@ namespace WASender
             setBrowserDefaultHtml(webBrowser14);
             setBrowserDefaultHtml(webBrowser15);
             setBrowserDefaultHtml(webBrowser16);
-            
+
 
 
             this._browser1.DocumentCompleted += new WebBrowserDocumentCompletedEventHandler(browser1_DocumentCompleted);
@@ -173,8 +168,8 @@ namespace WASender
             this._btnBrowser3.DocumentCompleted += new WebBrowserDocumentCompletedEventHandler(_btnBrowser3_DocumentCompleted);
             this._btnBrowser4.DocumentCompleted += new WebBrowserDocumentCompletedEventHandler(_btnBrowser4_DocumentCompleted);
             this._btnBrowser5.DocumentCompleted += new WebBrowserDocumentCompletedEventHandler(_btnBrowser5_DocumentCompleted);
-            
-            
+
+
 
         }
 
@@ -1289,8 +1284,8 @@ namespace WASender
             changeGridHeaders(dataGridView9);
             changeGridHeaders(dataGridView10);
 
-            groupBox21.Text = groupBox22.Text =groupBox23.Text= groupBox24.Text =groupBox25.Text= Strings.Buttons;
-            materialButton3.Text = materialButton9.Text = materialButton10.Text = materialButton11.Text = materialButton12 .Text= Strings.AddButton;
+            groupBox21.Text = groupBox22.Text = groupBox23.Text = groupBox24.Text = groupBox25.Text = Strings.Buttons;
+            materialButton3.Text = materialButton9.Text = materialButton10.Text = materialButton11.Text = materialButton12.Text = Strings.AddButton;
 
             if (!Strings.EnableButtons)
             {
@@ -1965,7 +1960,6 @@ namespace WASender
         private MesageModel CheckAndSendtoMessageModel(MaterialMultiLineTextBox2 txtMsg, DataGridView list, List<PollModel> _pollModel = null, List<ButtonHolderModel> _buttons = null)
         {
             MesageModel mesageModel;
-
             List<FilesModel> files = new List<FilesModel>();
 
             foreach (DataGridViewRow item in list.Rows)
@@ -1974,57 +1968,63 @@ namespace WASender
                 {
                     FilesModel filesModel;
                     bool IsAttachwithMainMessage = false;
-                    if (item.Cells[2].Value != null)
+
+                    if (item.Cells[2].Value != null && item.Cells[2].Value.ToString() == "True")
                     {
-                        if (item.Cells[2].Value.ToString() == "True")
-                        {
-                            IsAttachwithMainMessage = true;
-                        }
+                        IsAttachwithMainMessage = true;
                     }
 
-                    if (item.Cells[1].Value.ToString() != null && item.Cells[1].Value.ToString() != "")
+                    string cell1Value = item.Cells[1].Value?.ToString() ?? string.Empty; // Safe check for null
+                    string cell0Value = item.Cells[0].Value?.ToString() ?? string.Empty; // Safe check for null
+
+                    if (!string.IsNullOrEmpty(cell1Value))
                     {
                         filesModel = new FilesModel
                         {
-                            filePath = item.Cells[0].Value.ToString(),
+                            filePath = cell0Value,
                             attachWithMainMessage = false,
-                            Caption = item.Cells[1].Value.ToString()
+                            Caption = cell1Value
                         };
                         files.Add(filesModel);
                     }
-                    else if (IsAttachwithMainMessage == true)
+                    else if (IsAttachwithMainMessage)
                     {
                         filesModel = new FilesModel
                         {
-                            filePath = item.Cells[0].Value.ToString(),
+                            filePath = cell0Value,
                             attachWithMainMessage = true
                         };
                         files.Add(filesModel);
                     }
                     else
                     {
-                        files.Add(new FilesModel { filePath = item.Cells[0].Value.ToString(), Caption = item.Cells[1].Value.ToString() });
+                        files.Add(new FilesModel
+                        {
+                            filePath = cell0Value,
+                            Caption = cell1Value
+                        });
                     }
                 }
                 catch (Exception ex)
                 {
-
+                    // Log the exception or handle it appropriately
+                    Console.WriteLine($"Error processing row: {ex.Message}");
                 }
             }
 
-            if ((txtMsg.Text != null && txtMsg.Text != "") || (files.Count() > 0))
+            if (!string.IsNullOrEmpty(txtMsg.Text) || files.Any())
             {
-                mesageModel = new MesageModel();
-                mesageModel.longMessage = txtMsg.Text;
-
-                mesageModel.files = files;
-
-                //mesageModel.buttons = _buttonsModel;
+                mesageModel = new MesageModel
+                {
+                    longMessage = txtMsg.Text,
+                    files = files
+                };
 
                 if (_pollModel != null)
                 {
                     mesageModel.polls = _pollModel;
                 }
+
                 if (_buttons != null)
                 {
                     mesageModel.buttons = _buttons;
@@ -2033,10 +2033,7 @@ namespace WASender
                 return mesageModel;
             }
 
-            else
-            {
-                return null;
-            }
+            return null;
         }
 
         private void btnGroupDownloadExcel_Click(object sender, EventArgs e)

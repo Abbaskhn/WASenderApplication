@@ -20,7 +20,7 @@ using WASender.Models;
 
 namespace WASender
 {
-    public partial class RunSingle : MaterialForm
+    public partial class RunSingleExt : MaterialForm
     {
         WASenderSingleTransModel wASenderSingleTransModel;
         WaSenderForm waSenderForm;
@@ -41,17 +41,19 @@ namespace WASender
         SchedulesModel schedulesModel;
         bool forceScheduleRun = false;
         bool isSkippedNumberCHecking = false;
-        public RunSingle(WASenderSingleTransModel _wASenderSingleTransModel, WaSenderForm _waSenderForm, SchedulesModel _schedulesModel = null, bool _forceScheduleRun = false)
+        public RunSingleExt()
         {
+            SchedulesModel _schedulesModel = null;
+            bool _forceScheduleRun = false;
             InitializeComponent();
             this.Icon = Strings.AppIcon;
             logger = new Logger("RunSingle");
             // string jsonString = Newtonsoft.Json.JsonConvert.SerializeObject(_wASenderSingleTransModel);
 
-            this.waSenderForm = _waSenderForm;
+            //this.waSenderForm = _waSenderForm;
             string jsonFromFile = File.ReadAllText(@"SampleConfig\WASenderSingleTransModel.txt");
-            WASenderSingleTransModel deserializedObject = JsonConvert.DeserializeObject<WASenderSingleTransModel>(jsonFromFile);
-            this.wASenderSingleTransModel = deserializedObject;
+            WASenderSingleTransModel _wASenderSingleTransModel = JsonConvert.DeserializeObject<WASenderSingleTransModel>(jsonFromFile);
+            this.wASenderSingleTransModel = _wASenderSingleTransModel;
             //this.wASenderSingleTransModel = _wASenderSingleTransModel;
             this.Text = _wASenderSingleTransModel.CampaignName;
             forceScheduleRun = _forceScheduleRun;
@@ -136,7 +138,7 @@ namespace WASender
             {
                 Utils.waSenderBrowser.Close();
             }
-            waSenderForm.formReturn(true);
+            //waSenderForm.formReturn(true);
         }
 
         private void RunSingle_Load(object sender, EventArgs e)
@@ -1818,7 +1820,29 @@ namespace WASender
         {
             campaign_completed();
         }
+        private void campaign_completedExt()
+        {
+            ChangeCampStatus(CampaignStatusEnum.Finish);
+            stopProgressbar();
 
+
+            if (schedulesModel != null)
+            {
+                string jsonString = JsonConvert.SerializeObject(this.wASenderSingleTransModel);
+                //new SqLiteBaseRepository().UpdateScheduleCompleted(schedulesModel.Id, jsonString, report);
+
+                if (forceScheduleRun == false)
+                {
+
+                    pgbar = new Progressbar();
+                    pgbar.Show();
+                    pgbar.materialLabel1.Text = Strings.PleaseWait;
+                    Thread.Sleep(1000);
+                    pgbar.Close();
+
+                }
+            }
+        }
         private void campaign_completed()
         {
             ChangeCampStatus(CampaignStatusEnum.Finish);
@@ -1925,10 +1949,30 @@ namespace WASender
                     ChangeCampStatus(CampaignStatusEnum.Running);
                     startProgressBar();
                     //initTimer();
+                    bool isDOne = false;
+                    while (true)
+                    {
+                        // read files in folder
+                        foreach (var file in files)
+                        {
+                            //1 contact,  List? 
+                            //wASenderSingleTransModel.contactList=list;
+                            //1 message ,messaglist
+                            //
+                            //wASenderSingleTransModel.messages =messaglist;
+                            //1 file , filelist
+                            //wASenderSingleTransModel.files
+                            //wASenderSingleTransModel.contactList
+                            await doStartWork();
+                        }
+                        // remove files to done folder
 
-                    bool isDOne = await doStartWork();
 
-                    campaign_completed();
+                    }
+
+                    //isDOne = await doStartWork();
+                    campaign_completedExt();
+                    //campaign_completed();
                 }
                 catch (Exception ex)
                 {
@@ -2007,4 +2051,11 @@ namespace WASender
             IsPaused = false;
         }
     }
+    //public partial class RunSingleExt : Form
+    //{
+    //    public RunSingleExt()
+    //    {
+    //        InitializeComponent();
+    //    }
+    //}
 }

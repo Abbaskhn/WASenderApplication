@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace WASender
@@ -16,8 +13,8 @@ namespace WASender
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new WaSenderForm(args));
-
+            //Application.Run(new WaSenderForm(args));
+            Application.Run(new RunSingleExt());
             //Application.Run(new InfoWindow());
 
         }

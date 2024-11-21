@@ -5,9 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
-using System.Drawing;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -24,6 +22,7 @@ namespace WASender
         WASenderSingleTransModel wASenderSingleTransModelOriginal;
         WaSenderBrowser browser;
         RunSingle runSingle;
+        RunSingleExt runSingleExt;
         GeneralSettingsModel generalSettingsModel;
         private TestClass _testClass;
         IWebDriver driver;
@@ -37,6 +36,35 @@ namespace WASender
             wASenderSingleTransModel = _WASenderSingleTransModel;
             wASenderSingleTransModelOriginal = _WASenderSingleTransModel;
             runSingle = _runSingle;
+            generalSettingsModel = Config.GetSettings();
+            stopProgressbar();
+            if (Utils.Driver != null)
+            {
+                if (generalSettingsModel.browserType == 1)
+                {
+                    Utils.SetDriver();
+                    driver = Utils.Driver;
+                    initWA();
+                }
+            }
+            if (Utils.waSenderBrowser != null)
+            {
+                browser = Utils.waSenderBrowser;
+                initWABrowser();
+            }
+            _testClass = Utils.testClass;
+            _testClass.OnUpdateStatus += _testClass_OnUpdateStatus;
+
+            preparGoodNumbers();
+
+        }
+        public QuickFilter(WASenderSingleTransModel _WASenderSingleTransModel, RunSingleExt _runSingle)
+        {
+            InitializeComponent();
+            this.Icon = Strings.AppIcon;
+            wASenderSingleTransModel = _WASenderSingleTransModel;
+            wASenderSingleTransModelOriginal = _WASenderSingleTransModel;
+            runSingleExt = _runSingle;
             generalSettingsModel = Config.GetSettings();
             stopProgressbar();
             if (Utils.Driver != null)
@@ -281,7 +309,7 @@ namespace WASender
             initLanguages();
         }
 
-        
+
 
 
         private async Task<bool> startChecking()
@@ -416,7 +444,7 @@ namespace WASender
                     {
                         await Task.Delay(TimeSpan.FromSeconds(2));
                     }
-                    
+
 
                 }
             }
